@@ -1867,11 +1867,12 @@ def sysPage(sysName, tab):
             df = df.query('carModel == "%s"' % model)
 
             col1, col2, col3 = st.columns(3)
-            tdf = df
+            tdf = df[['gradingScore', 'pName1']]
             tdf = tdf.query('gradingScore > 1 and gradingScore <= 10').groupby(['pName1'], as_index=False).agg('mean')
             tdf['gradingScore'] = tdf.apply(lambda x:round(x['gradingScore']*100), axis=1) 
             tdf = tdf.sort_values(by='gradingScore',ascending=True,inplace=False)#.iloc[-20:]                
             #Bar2(col1, tdf, 'pName1', 'gradingScore', 'gradingScore','一级维度均分', 'v', 400)
+            
             gradingScoreRedar(df, 'pName1', col1, '一级维度平均分', [500, 800])
             recordCountBar(df, 'evaluatorName', col2, '用户评分数', True)
             recordCountBar(df, 'pName1', col3, '一级维度评分数', True)
