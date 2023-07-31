@@ -909,7 +909,7 @@ def sysPage(sysName, tab):
             Bar2(col3, tdf, '创建者', 'fdId', 'fdId','创建者文档数', 'v', 400)
             s5 = str(tdf.rename(columns={'fdId':'数量'})[['创建者','数量']].set_index('创建者').to_dict())
 
-            tdf = df
+            tdf = df[['作者','浏览']]
             tdf = tdf.groupby(['作者'], as_index=False).agg('sum')
             tdf = tdf.sort_values(by='浏览',ascending=False,inplace=False).iloc[:10]
             Bar2(col4, tdf, '作者', '浏览', '浏览', '最受欢迎作者', 'v', 400)
@@ -960,7 +960,7 @@ def sysPage(sysName, tab):
             Bar2(col3, tdf, '创建者', 'fdId', 'fdId','月度创建者发布文档数', 'v', 400)
             s8 = str(tdf.rename(columns={'fdId':'数量'})[['创建者','数量']].set_index('创建者').to_dict())
 
-            tdf = mdf
+            tdf = mdf[['作者','浏览']]
             tdf = tdf.groupby(['作者'], as_index=False).agg('sum')
             tdf = tdf.sort_values(by='浏览',ascending=False,inplace=False).iloc[:10]
             Bar2(col4, tdf, '作者', '浏览', '浏览', '月度最受欢迎作者', 'v', 400)
