@@ -1,3 +1,4 @@
+pandas==1.5.3
 tinydb
 tinydb_serialization
 plotly
