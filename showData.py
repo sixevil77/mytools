@@ -1717,7 +1717,7 @@ def sysPage(sysName, tab):
         
     elif sysName == 'PQ':
         def gradingScoreBar(df, group, container, title):
-            tdf = df
+            tdf = df[['gradingScore',group]]
             tdf = tdf.query('gradingScore > 1 and gradingScore <= 10').groupby([group], as_index=False).agg('mean')
             tdf['gradingScore'] = tdf.apply(lambda x:round(x['gradingScore']*100), axis=1)
             tdf = tdf.sort_values(by='gradingScore',ascending=True,inplace=False)
@@ -1725,7 +1725,7 @@ def sysPage(sysName, tab):
             return tdf
         
         def gradingScoreRedar(df, group, container, title, range):
-            tdf = df
+            tdf = df[['gradingScore',group]]
             tdf = tdf.query('gradingScore > 1 and gradingScore <= 10').groupby([group], as_index=False).agg('mean')
             tdf['gradingScore'] = tdf.apply(lambda x:round(x['gradingScore']*100), axis=1)
             Radar(container, tdf, title, 'gradingScore', group, range)
