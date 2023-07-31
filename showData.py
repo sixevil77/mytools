@@ -368,6 +368,7 @@ def getOAOverview():
     dtLast2 = datetime.strftime(dtLast2, '%Y-%m-%d %H:%M')
     rs = flowsDB.search((flowsQuery.type.matches('.*设变.*')) & ~(flowsQuery.dept.matches('.*公用技术部.*')) & ~(flowsQuery.subject.matches('.*测试.*')))
     df = pd.DataFrame(rs)
+    df
     df['dept'] = df.apply(lambda x:getOADeptName(x), axis=1)
 
     df1 = df.query('(start < "%s") and (start > "%s")' % (dtNow, dtLast1))  
