@@ -1790,7 +1790,7 @@ def sysPage(sysName, tab):
             tdf = recordCountBar(df, 'pName1', col2, '一级维度评分数', True)
             s3 = getDataframeString(tdf, {'数量':'id', '一级评分维度':'pName1'}, '一级评分维度')
 
-            tdf = df
+            tdf = df[['gradingScore', 'pName1']]
             tdf = tdf.query('gradingScore > 1 and gradingScore <= 10').groupby(['pName1'], as_index=False).agg('mean')
             tdf['gradingScore'] = tdf.apply(lambda x:round(x['gradingScore']*100), axis=1) 
             tdf = tdf.sort_values(by='gradingScore',ascending=True,inplace=False)#.iloc[-20:]                
