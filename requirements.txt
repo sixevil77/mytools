@@ -1,3 +1,5 @@
 tinydb
 tinydb_serialization
 plotly
+pyecharts
+openai
