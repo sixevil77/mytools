@@ -16,7 +16,7 @@ from tinydb_serialization.serializers import DateTimeSerializer
 
 import openai
 openai.api_base="https://openai.api2d.net/v1"
-openai.api_key = "fk201020-Hva0Q8mWeiW00M4S6oygtOb52MqMmd9O"
+openai.api_key = st.secrets['GK']
 
 def ymd(y, m, d):
     return '%d/%d/%d' % (y,m,d)
@@ -128,11 +128,13 @@ def Radar(page, data, title, r, theta, range_r):
     fig = px.line_polar(data, title=title, r=r, theta=theta, line_close=True, range_r = range_r)
     page.plotly_chart(fig, use_container_width=True)
 
-def askGPT(qKey, question, temp):
+def askGPT(qKey, question, temp):    
     dtNow = utc_now()
     answer = '' 
-    mk = st.markdown(answer)       
-    completion = openai.ChatCompletion.create(model="gpt-3.5-turbo-0613",
+    mk = st.markdown(answer)      
+    model = 'gpt-3.5-turbo-0613' 
+    #model = 'gpt-4-0613'
+    completion = openai.ChatCompletion.create(model=model,
                                               messages=[{"role": "user", "content": question}], 
                                               temperature = temp, stream=True)  
     for chunk in completion:
@@ -151,7 +153,8 @@ def getGPTAnswer(qKey):
     rs = gptDB.search(gptQuery.key.matches(reg))
     return rs
 
-def getOrAskGPT(qKey, question, temp=0.7):
+def getOrAskGPT(qKey, question, temp=0.3):
+    question = '现在的时间是: %s, 分析以下问题是请结合当前时间进行考虑，特别是在进行月度数据分析的时候，:red[**文字**] 表示将文字红色加粗显示, 输出时请将内容中重要的观点、人名、部门名称、数据等内容用红色加粗文字显示, 输出内容要求有小号字体的标题,' % utc_now() + question
     #question
     if qKey and question:
         rs = getGPTAnswer(qKey)
@@ -940,31 +943,37 @@ def sysPage(sysName, tab):
             dtY = dtNow.year
             dtM = dtNow.month
             mdf = df.query('发布年==%d and 发布月==%d' % (dtY, dtM))
-            mdf['dept'] = mdf.apply(lambda x:getKmsDept(x,'所属部门'), axis=1)
 
-            col1, col2, col3, col4 = st.columns(4)
-            tdf = mdf
-            tdf = tdf.groupby(['模板'], as_index=False).agg('count')
-            tdf = tdf.sort_values(by='fdId',ascending=False,inplace=False).iloc[:10]
-            Pie(col1, tdf, 'fdId', '模板', '月度知识库分布')
-            s6 = str(tdf.rename(columns={'fdId':'数量'})[['模板','数量']].set_index('模板').to_dict())
+            s6={}
+            s7=s8=0
+            if mdf.empty:
+                st.write('本月暂无文档发布数据')
+            else:
+                mdf['dept'] = mdf.apply(lambda x:getKmsDept(x,'所属部门'), axis=1)
 
-            tdf = mdf
-            tdf = tdf.groupby(['dept'], as_index=False).agg('count') 
-            tdf = tdf.sort_values(by='fdId',ascending=False,inplace=False).iloc[:10]                
-            Bar2(col2, tdf, 'dept', 'fdId', 'fdId','月度部门发布文档数', 'v', 400)
-            
-            tdf = mdf
-            tdf = tdf.groupby(['创建者'], as_index=False).agg('count') 
-            tdf = tdf.sort_values(by='fdId',ascending=False,inplace=False).iloc[:10]                
-            Bar2(col3, tdf, '创建者', 'fdId', 'fdId','月度创建者发布文档数', 'v', 400)
-            s8 = str(tdf.rename(columns={'fdId':'数量'})[['创建者','数量']].set_index('创建者').to_dict())
+                col1, col2, col3, col4 = st.columns(4)
+                tdf = mdf
+                tdf = tdf.groupby(['模板'], as_index=False).agg('count')
+                tdf = tdf.sort_values(by='fdId',ascending=False,inplace=False).iloc[:10]
+                Pie(col1, tdf, 'fdId', '模板', '月度知识库分布')
+                s6 = str(tdf.rename(columns={'fdId':'数量'})[['模板','数量']].set_index('模板').to_dict())
 
-            tdf = mdf[['作者','浏览']]
-            tdf = tdf.groupby(['作者'], as_index=False).agg('sum')
-            tdf = tdf.sort_values(by='浏览',ascending=False,inplace=False).iloc[:10]
-            Bar2(col4, tdf, '作者', '浏览', '浏览', '月度最受欢迎作者', 'v', 400)
-            s7 = str(tdf.rename(columns={'浏览':'浏览量'})[['作者','浏览量']].set_index('作者').to_dict())
+                tdf = mdf
+                tdf = tdf.groupby(['dept'], as_index=False).agg('count') 
+                tdf = tdf.sort_values(by='fdId',ascending=False,inplace=False).iloc[:10]                
+                Bar2(col2, tdf, 'dept', 'fdId', 'fdId','月度部门发布文档数', 'v', 400)
+                
+                tdf = mdf
+                tdf = tdf.groupby(['创建者'], as_index=False).agg('count') 
+                tdf = tdf.sort_values(by='fdId',ascending=False,inplace=False).iloc[:10]                
+                Bar2(col3, tdf, '创建者', 'fdId', 'fdId','月度创建者发布文档数', 'v', 400)
+                s8 = str(tdf.rename(columns={'fdId':'数量'})[['创建者','数量']].set_index('创建者').to_dict())
+
+                tdf = mdf[['作者','浏览']]
+                tdf = tdf.groupby(['作者'], as_index=False).agg('sum')
+                tdf = tdf.sort_values(by='浏览',ascending=False,inplace=False).iloc[:10]
+                Bar2(col4, tdf, '作者', '浏览', '浏览', '月度最受欢迎作者', 'v', 400)
+                s7 = str(tdf.rename(columns={'浏览':'浏览量'})[['作者','浏览量']].set_index('作者').to_dict())
 
             nt = utc_now()
             #qk = 'kmsDocsDashboard_%s_%s_%s' % (nt.year, nt.month, nt.day)
@@ -973,7 +982,7 @@ def sysPage(sysName, tab):
             专业部门创建的文档数：%s, 创建者创建的文档数：%s,
             本月新发布文档类型数量数据为：%s, 本月文档作者创建文档的阅读数：%s, 本月创建者创建的文档数：%s,
             ''' % (s1, s2, s3, s4, s5, s6, s7, s8)
-            q = '以汽车研发设计行业大数据分析师的身份对以下括号中的数据进行分析，给出200字左右的综合性分析报告， 请用markdown语法输出内容, 请将重要或关键的内容用加粗红色字体表示出来 (%s)' % qs
+            q = '以汽车研发设计行业大数据分析师的身份对以下括号中的数据进行分析，给出200字左右的综合性分析报告 (%s)' % qs
             return qk, q
 
         @st.cache_data()
@@ -1025,18 +1034,24 @@ def sysPage(sysName, tab):
             dtY = dtNow.year
             dtM = dtNow.month
             col1, col2 = st.columns(2)
-            tdf = df.query('y == %d and m == %d' % (dtY, dtM))
-            tdf['dept'] = tdf.apply(lambda x:getKmsDept(x), axis=1)
-            tdf = tdf.groupby(['dept'], as_index=False).agg('count')     
-            tdf = tdf.sort_values(by='fdId',ascending=False,inplace=False).iloc[:20]                
-            Bar2(col1, tdf, 'dept', 'fdId', 'fdId','部门阅读量(%d年%d月)' % (dtY, dtM), 'v', 400)
-            s4 = str(tdf.rename(columns={'fdId':'数量'})[['dept','数量']].set_index('dept').to_dict())
+            df = df.query('y == %d and m == %d' % (dtY, dtM))
 
-            tdf = df.query('y == %d and m == %d' % (dtY, dtM))
-            tdf = tdf.groupby(['阅读人'], as_index=False).agg('count') 
-            tdf = tdf.sort_values(by='fdId',ascending=False,inplace=False).iloc[:20]                
-            Bar2(col2, tdf, '阅读人', 'fdId', 'fdId','用户阅读量(%d年%d月)' % (dtY, dtM), 'v', 400)
-            s5 = str(tdf.rename(columns={'fdId':'数量'})[['阅读人','数量']].set_index('阅读人').to_dict())
+            s4=s5={}
+            if df.empty:
+                st.write('暂无月度文档阅读数据')
+            else:
+                tdf = df
+                tdf['dept'] = tdf.apply(lambda x:getKmsDept(x), axis=1)
+                tdf = tdf.groupby(['dept'], as_index=False).agg('count')     
+                tdf = tdf.sort_values(by='fdId',ascending=False,inplace=False).iloc[:20]                
+                Bar2(col1, tdf, 'dept', 'fdId', 'fdId','部门阅读量(%d年%d月)' % (dtY, dtM), 'v', 400)
+                s4 = str(tdf.rename(columns={'fdId':'数量'})[['dept','数量']].set_index('dept').to_dict())
+
+                tdf = df
+                tdf = tdf.groupby(['阅读人'], as_index=False).agg('count') 
+                tdf = tdf.sort_values(by='fdId',ascending=False,inplace=False).iloc[:20]                
+                Bar2(col2, tdf, '阅读人', 'fdId', 'fdId','用户阅读量(%d年%d月)' % (dtY, dtM), 'v', 400)
+                s5 = str(tdf.rename(columns={'fdId':'数量'})[['阅读人','数量']].set_index('阅读人').to_dict())
 
             mvDocs = ','.join(list(rdf1['文档标题'].values))
             mvDocsMonth = ','.join(list(rdf2['文档标题'].values))
@@ -1048,7 +1063,7 @@ def sysPage(sysName, tab):
             cym = '%d年%d月' % (dtY, dtM)
             qs = '文档的月阅读总量：%s, 文档按部门的阅读量：%s, 文档按阅读人的阅读量：%s, %s文档按部门的阅读量：%s, %s阅读文档最多的阅读人的阅读量：%s' % (s1, s2, s3, cym, s4, cym, s5)
             qs += ',总阅读量最多的10个文档按阅读量从高到低排序为这些文档：[%s], 本月阅读量最多的10个文档按阅读量从高到低排序为这些文档：[%s]' % (mvDocs, mvDocsMonth)
-            q = '以汽车研发设计行业大数据分析师的身份对以下括号中的数据进行多维度分析挖掘，给出200字左右的综合性分析报告，另外通过对总阅读和本月阅读最多的文档也给出分析观点, 请用markdown语法输出内容, 请将分析内容中重要关键的内容用加粗红色字体表示出来 (%s)' % qs
+            q = '以汽车研发设计行业大数据分析师的身份对以下括号中的数据进行多维度分析挖掘，给出200字左右的综合性分析报告，另外通过对总阅读和本月阅读最多的文档也给出分析观点 (%s)' % qs
             return qk, q
                     
         def showKmsOverview():
@@ -1071,7 +1086,7 @@ def sysPage(sysName, tab):
             ''' % (allPubCount, 
                    dtLast1, dtNow, pubCount1, authorCount1, readCount1, readerCount1,mvpDept, mvpCount, mvrDept, mvrCount,
                    dtLast2, dtLast1, pubCount2, authorCount2, readCount2, readerCount2)
-            q = '以汽车研发数据分析师的身份对以下括号中的数据进行分析挖掘，给出200字左右的本月数据研报和评论， 请用markdown语法输出内容, 请将重要或关键的内容用加粗红色字体表示出来 (%s)' % qs                
+            q = '以汽车研发数据分析师的身份对以下括号中的数据进行分析挖掘，给出200字左右的本月数据研报和评论 (%s)' % qs                
             nt = utc_now()
             qk = 'kmsOverview'
             return qk, q
@@ -1294,7 +1309,7 @@ def sysPage(sysName, tab):
                 这个月月度计划完成率情况: 最高的项目为%s, 完成率为%.2f%%, 完成率最低的项目为%s, 完成率为%.2f%% 
                 ''' % (planCount1, planComp1*100, delayCount1, planCount2, delayCount2, dtn1, dtc1, dbn1, dbc1, 
                        mptn1, mptc1, mpbn1, mpbc1, bestProj, bestRate*100, worstProj, worstRate*100)
-                q = '以汽车研发项目分析师的身份对以下括号中的数据进行深度分析，给出200字左右的本月数据研报和评论，请用markdown语法输出内容, 请将重要或关键的内容用加粗红色字体表示出来 (%s)' % qs                
+                q = '以汽车研发项目分析师的身份对以下括号中的数据进行深度分析，给出200字左右的本月数据研报和评论 (%s)' % qs                
                 qk = 'cpmsOverview'
             with tab2:               
                 getOrAskGPT(qk, q)             
@@ -1532,7 +1547,7 @@ def sysPage(sysName, tab):
             rs = ddf.values
             qk = 'CpmsTaskStatus'
             q = '''你是一名资深的数据分析师，拥有敏锐的数据洞察能力，请对以下括号中项目任务完成情况的数据进行分析，给出300字尖锐和精辟的项目计划数据分析研报及观点，
-            请用markdown语法输出内容, 请将重要或关键的内容用加粗红色字体表示出来,括号中数据项分别为[月度,任务总数,任务延期数,任务完成数,按时完成率,项目名称],
+            括号中数据项分别为[月度,任务总数,任务延期数,任务完成数,按时完成率,项目名称],
             (%s)''' % rs
             getOrAskGPT(qk, q)
 
@@ -1551,7 +1566,7 @@ def sysPage(sysName, tab):
             rs = ddf.values
             qk = 'CpmsTaskStatus_modules'
             q = '''你是一名资深的数据分析师，拥有敏锐的数据洞察能力，请对以下括号中六大模块任务完成情况的数据进行分析，给出300字尖锐和精辟的项目计划数据分析研报及观点，
-            请用markdown语法输出内容, 请将重要或关键的内容用加粗红色字体表示出来,括号中数据项分别为[月度,任务总数,任务延期数,任务完成数,按时完成率,项目名称],
+            括号中数据项分别为[月度,任务总数,任务延期数,任务完成数,按时完成率,项目名称],
             (%s)''' % rs
             getOrAskGPT(qk, q)
 
@@ -1751,7 +1766,7 @@ def sysPage(sysName, tab):
             上个月度 %s 至 %s 时间段内: 评分数量为%d个, 进行评分的工程师数量为%d人, 进行评分的车型数量为%d个, 进行评分的车型为：%s
             ''' % (dtLast1, dtNow, evCount1, erCount1, cmCount1, carModels1, 
                     dtLast2, dtLast1, evCount2, erCount2, cmCount2, carModels2)
-            q = '以资深数据分析师的身份对以下括号中的数据进行深度分析，给出月度分析报告和观点, 请用markdown语法输出内容, 请将重要或关键的内容用加粗红色字体表示出来 (%s)' % qs                
+            q = '以资深数据分析师的身份对以下括号中的数据进行深度分析，给出月度分析报告和观点 (%s)' % qs                
             nt = utc_now()
             #qk = 'pqOverview_%s_%s_%s' % (nt.year, nt.month, nt.day)
             qk = 'pqOverview'
@@ -1853,7 +1868,7 @@ def sysPage(sysName, tab):
             按评分人性别的评分次数：%s, 按评分人年龄段的评分次数：%s, 按评分人体重的评分次数：%s, 按评分人身高的评分次数：%s,
             按评分人性别的评分均分：%s, 按评分人年龄段的评分均分：%s, 按评分人体重的评分均分：%s, 按评分人身高的评分均分：%s,
             对车型的评分次数：%s, 对车型的评分均分：%s''' % (s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14)
-            q = '以汽车研发设计行业数据分析师的身份对以下括号中对汽车的主观感官评价数据进行分析，该数据为汽车研发专业工程师评价并非来自用户，给出280字左右的数据分析和观点, 请用markdown语法输出内容, 用加粗红色字体将其中重要内容表示出来  (%s)' % qs
+            q = '以汽车研发设计行业数据分析师的身份对以下括号中对汽车的主观感官评价数据进行分析，该数据为汽车研发专业工程师评价并非来自用户，给出200字左右的数据分析和观点(%s)' % qs
             nt = utc_now()
             #qk = 'pqDashboard_%s_%s_%s' % (nt.year, nt.month, nt.day)
             qk = 'pqDashboard'
